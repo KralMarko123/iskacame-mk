@@ -6,6 +6,7 @@ gem "puma", ">= 5.0"
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 gem "redis"
+gem "connection_pool", "< 3.0"
 gem "playwright-ruby-client"
 
 group :development, :test do
@@ -17,6 +18,8 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  gem "dotenv-rails"
 end
 
 

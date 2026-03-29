@@ -4,4 +4,5 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   get "/today_story", to: "stories#show"
+  get "/story_page",  to: "stories#page"
 end

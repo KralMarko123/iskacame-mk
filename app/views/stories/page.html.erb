@@ -1,0 +1,17 @@
+<h1>Today's Story</h1>
+
+<% if @story.present? && @story["items"].present? %>
+  <% @story["items"].sort_by { |item| item["order"] }.each do |item| %>
+    <div style="margin-bottom: 24px;">
+      <% if item["type"] == "image" %>
+        <img src="<%= item["media_url"] %>" alt="" style="max-width: 400px;" />
+      <% elsif item["type"] == "video" %>
+        <video controls style="max-width: 400px;">
+          <source src="<%= item["media_url"] %>" />
+        </video>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <p>No active story cached right now.</p>
+<% end %>
