@@ -18,6 +18,14 @@ class StoriesController < ApplicationController
   end
 
   def page
-    @story = Rails.cache.read(STORY_CACHE_KEY)
+    raw_story = Rails.cache.read(STORY_CACHE_KEY) || {
+      active: false,
+      source: ENV["INSTAGRAM_TARGET_PROFILE"],
+      fetched_at: nil,
+      expires_at: nil,
+      items: []
+    }
+
+    @story = raw_story.deep_stringify_keys
   end
 end

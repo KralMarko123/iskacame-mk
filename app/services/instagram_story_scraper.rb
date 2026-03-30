@@ -1,33 +1,65 @@
 require "json"
-require "time"
+require "set"
 
 class InstagramStoryScraper
-  PROFILE = ENV.fetch("INSTAGRAM_TARGET_PROFILE")
+  MAX_STORIES = 20
+
+  def initialize(profile_username:)
+    @profile_username = profile_username
+  end
 
   def call
-    playwright_cli = ENV["PLAYWRIGHT_CLI_EXECUTABLE_PATH"]
+    storage_state_path = ENV.fetch("INSTAGRAM_STORAGE_STATE_PATH", "tmp/instagram_auth.json")
+    raise "Missing Instagram auth state at #{storage_state_path}" unless File.exist?(storage_state_path)
 
-    Playwright.create(playwright_cli_executable_path: playwright_cli) do |playwright|
-      browser = playwright.chromium.launch(headless: true)
-      context = browser.new_context
+    Playwright.create(
+      playwright_cli_executable_path: ENV.fetch("PLAYWRIGHT_CLI_EXECUTABLE_PATH", "npx playwright")
+    ) do |playwright|
+      browser = playwright.chromium.launch(headless: false)
+      context = browser.new_context(
+        ignoreHTTPSErrors: true,
+        storageState: storage_state_path
+      )
       page = context.new_page
 
       begin
-        page.goto("https://www.instagram.com/#{PROFILE}/", wait_until: "domcontentloaded", timeout: 30_000)
+        media_urls = []
+        seen_media = Set.new
 
-        dismiss_cookie_banner_if_present(page)
-        open_story_if_present(page)
+        page.on("response", ->(response) do
+          begin
+            url = response.url
 
-        items = extract_story_items(page)
+            if story_media_url?(url) && !seen_media.include?(url)
+              seen_media << url
+              media_urls << {
+                url: url,
+                content_type: response.header_value("content-type")
+              }
+              puts "MEDIA RESPONSE: #{url}"
+            end
+          rescue => e
+            puts "Response capture error: #{e.message}"
+          end
+        end)
+
+        page.goto(story_url, waitUntil: "domcontentloaded", timeout: 30_000)
+        page.wait_for_timeout(4000)
+
+        click_story_entry_prompt(page)
+        page.wait_for_timeout(4000)
+
+        items = collect_story_frames(page, media_urls)
 
         {
           active: items.any?,
-          source: PROFILE,
+          source: profile_username,
           fetched_at: Time.current.iso8601,
           expires_at: Time.current.end_of_day.iso8601,
           items: items
         }
       ensure
+        context.close
         browser.close
       end
     end
@@ -35,84 +67,141 @@ class InstagramStoryScraper
 
   private
 
-  def dismiss_cookie_banner_if_present(page)
-    buttons = [
-      "Allow all cookies",
-      "Allow essential and optional cookies",
-      "Only allow essential cookies"
-    ]
+  attr_reader :profile_username
 
-    buttons.each do |label|
-      locator = page.locator("text=#{label}")
-      if locator.count > 0
-        locator.first.click
-        break
+  def story_url
+    "https://www.instagram.com/stories/#{profile_username}/"
+  end
+
+  def click_story_entry_prompt(page)
+    locator = page.locator('div[role="button"]', hasText: "View story")
+    return false if locator.count == 0
+
+    button = locator.first
+    button.scroll_into_view_if_needed
+    page.wait_for_timeout(500)
+
+    begin
+      button.click(force: true, timeout: 5_000)
+    rescue
+      begin
+        button.dispatch_event("click")
+      rescue
+        button.evaluate("el => el.click()")
       end
-    rescue
-      next
     end
+
+    page.wait_for_timeout(3000)
+    true
   end
 
-  def open_story_if_present(page)
-    possible_selectors = [
-      "canvas",
-      "header a",
-      "img[alt*='profile picture' i]"
-    ]
-
-    possible_selectors.each do |selector|
-      locator = page.locator(selector)
-      next unless locator.count > 0
-
-      locator.first.click
-      sleep 2
-      return
-    rescue
-      next
-    end
-  end
-
-  def extract_story_items(page)
+  def collect_story_frames(page, media_urls)
     items = []
+    seen_urls = Set.new
+
+    MAX_STORIES.times do |index|
+      page.wait_for_timeout(2500)
+
+      current_item = extract_current_frame(page, media_urls)
+      if current_item && !seen_urls.include?(current_item[:media_url])
+        seen_urls << current_item[:media_url]
+        current_item[:order] = items.length + 1
+        items << current_item
+        puts "Captured frame #{items.length}: #{current_item[:type]} #{current_item[:media_url]}"
+      else
+        puts "No new frame captured at step #{index + 1}"
+      end
+
+      break unless click_next_story(page)
+    end
+
+    items
+  end
+
+  def extract_current_frame(page, media_urls)
+    latest_media = media_urls.reverse.find { |entry| usable_story_media?(entry[:url]) }
+
+    if latest_media
+      content_type = latest_media[:content_type].to_s
+
+      if content_type.include?("video") || latest_media[:url].include?(".mp4")
+        return { type: "video", media_url: latest_media[:url] }
+      end
+
+      if content_type.include?("image") || image_story_url?(latest_media[:url])
+        return { type: "image", media_url: latest_media[:url] }
+      end
+    end
+
+    extract_current_frame_from_dom(page)
+  end
+
+  def extract_current_frame_from_dom(page)
+    video_nodes = page.locator("video")
+    if video_nodes.count > 0
+      poster = video_nodes.first.get_attribute("poster")
+      return { type: "image", media_url: poster } if poster.present?
+    end
 
     image_nodes = page.locator("img")
-    image_count = image_nodes.count
-
-    (0...image_count).each do |i|
+    (0...image_nodes.count).each do |i|
       src = image_nodes.nth(i).get_attribute("src")
       next if src.blank?
-      next unless src.include?("instagram")
       next if likely_avatar?(src)
+      next unless src.include?("instagram")
 
-      items << {
-        type: "image",
-        media_url: src,
-        order: items.length + 1
-      }
-    rescue
-      next
+      return { type: "image", media_url: src }
     end
 
-    video_nodes = page.locator("video")
-    video_count = video_nodes.count
+    nil
+  end
 
-    (0...video_count).each do |i|
-      src = video_nodes.nth(i).get_attribute("src")
-      next if src.blank?
+  def click_next_story(page)
+    selectors = [
+      'svg[aria-label="Next"]',
+      'button[aria-label="Next"]',
+      'div[role="button"][aria-label="Next"]'
+    ]
 
-      items << {
-        type: "video",
-        media_url: src,
-        order: items.length + 1
-      }
-    rescue
-      next
+    selectors.each do |selector|
+      begin
+        locator = page.locator(selector)
+        next if locator.count == 0
+
+        locator.first.click(force: true, timeout: 3_000)
+        page.wait_for_timeout(1500)
+        return true
+      rescue
+        next
+      end
     end
 
-    items.uniq { |item| [item[:type], item[:media_url]] }
+    begin
+      page.keyboard.press("ArrowRight")
+      page.wait_for_timeout(1500)
+      return true
+    rescue
+      false
+    end
+  end
+
+  def story_media_url?(url)
+    return false if url.blank?
+    return false unless url.include?("fbcdn.net") || url.include?("cdninstagram.com") || url.include?("instagram")
+    return false if likely_avatar?(url)
+
+    url.include?(".jpg") || url.include?(".jpeg") || url.include?(".png") || url.include?(".mp4") || url.include?("bytestart")
+  end
+
+  def usable_story_media?(url)
+    story_media_url?(url) && !url.start_with?("blob:")
+  end
+
+  def image_story_url?(url)
+    url.include?(".jpg") || url.include?(".jpeg") || url.include?(".png")
   end
 
   def likely_avatar?(src)
-    src.include?("s150x150") || src.include?("profile")
+    src.include?("s150x150") || src.include?("/t51.2885-19/")
   end
 end

@@ -1,17 +1,41 @@
-<h1>Today's Story</h1>
+<div style="max-width: 700px; margin: 40px auto; padding: 24px;">
+  <h1 style="margin-bottom: 8px;">Today's Story</h1>
 
-<% if @story.present? && @story["items"].present? %>
-  <% @story["items"].sort_by { |item| item["order"] }.each do |item| %>
-    <div style="margin-bottom: 24px;">
-      <% if item["type"] == "image" %>
-        <img src="<%= item["media_url"] %>" alt="" style="max-width: 400px;" />
-      <% elsif item["type"] == "video" %>
-        <video controls style="max-width: 400px;">
-          <source src="<%= item["media_url"] %>" />
-        </video>
-      <% end %>
+  <% if @story["source"].present? %>
+    <p style="color: #bbb; margin-top: 0;">Source: <%= @story["source"] %></p>
+  <% end %>
+
+  <% if @story[:active] && @story[:items].present? %>
+    <% @story[:items].sort_by { |item| item[:order] || 0 }.each do |item| %>
+      <div style="margin-bottom: 24px; background: #1b1b1b; padding: 16px; border-radius: 12px;">
+        <% if item['type'] == "image" %>
+          <img
+            src="<%= item['media_url'] %>"
+            alt="Story image"
+            style="width: 100%; height: auto; border-radius: 8px; display: block;"
+            />
+        <% elsif item['type'] == "video" %>
+          <video controls style="width: 100%; border-radius: 8px; display: block;">
+            <source src="<%= item['media_url'] %>">
+          </video>
+        <% else %>
+          <p>Unsupported story item type.</p>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @story["expires_at"].present? %>
+      <p style="color: #999;">Expires at: <%= @story["expires_at"] %></p>
+    <% end %>
+  <% else %>
+    <div style="background: #1b1b1b; padding: 16px; border-radius: 12px;">
+      <p style="margin: 0;">No active story right now.</p>
     </div>
   <% end %>
-<% else %>
-  <p>No active story cached right now.</p>
-<% end %>
+</div>
+
+<script>
+  let story = <%= @story.to_json.html_safe %>;
+
+  console.log(story)
+</script>
