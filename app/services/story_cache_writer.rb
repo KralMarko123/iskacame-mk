@@ -1,13 +1,11 @@
 class StoryCacheWriter
-  CACHE_KEY = "instagram_story:today"
-
   def initialize(payload:)
     @payload = payload
   end
 
   def call
     Rails.cache.write(
-      CACHE_KEY,
+      STORY_CACHE_KEY,
       payload,
       expires_in: seconds_until_midnight
     )

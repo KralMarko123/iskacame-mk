@@ -1,41 +1,51 @@
-<div style="max-width: 700px; margin: 40px auto; padding: 24px;">
-  <h1 style="margin-bottom: 8px;">Today's Story</h1>
+<div class="story-page">
+  <div class="story-page__inner">
+    <header class="story-page__header">
+      <h1 class="story-page__title">Today's Stories</h1>
 
-  <% if @story["source"].present? %>
-    <p style="color: #bbb; margin-top: 0;">Source: <%= @story["source"] %></p>
-  <% end %>
+      <% if @story["source"].present? %>
+        <p class="story-page__meta">
+          Source: <span><%= @story["source"] %></span>
+        </p>
+      <% end %>
+    </header>
 
-  <% if @story[:active] && @story[:items].present? %>
-    <% @story[:items].sort_by { |item| item[:order] || 0 }.each do |item| %>
-      <div style="margin-bottom: 24px; background: #1b1b1b; padding: 16px; border-radius: 12px;">
-        <% if item['type'] == "image" %>
-          <img
-            src="<%= item['media_url'] %>"
-            alt="Story image"
-            style="width: 100%; height: auto; border-radius: 8px; display: block;"
-            />
-        <% elsif item['type'] == "video" %>
-          <video controls style="width: 100%; border-radius: 8px; display: block;">
-            <source src="<%= item['media_url'] %>">
-          </video>
-        <% else %>
-          <p>Unsupported story item type.</p>
+    <% if @story["active"] && @story["items"].present? %>
+      <section class="story-grid">
+        <% @story["items"].sort_by { |item| item["order"] || item[:order] || 0 }.each do |item| %>
+          <% type = item["type"] || item[:type] %>
+          <% media_url = item["media_url"] || item[:media_url] %>
+          <% order = item["order"] || item[:order] %>
+
+          <article class="story-card">
+            <div class="story-card__top">
+              <span class="story-card__label">Story <%= order %></span>
+            </div>
+
+            <div class="story-card__media">
+              <% if type == "image" %>
+                <img
+                  src="<%= media_url %>"
+                  alt="Story image <%= order %>"
+                  class="story-card__img"
+                  />
+              <% elsif type == "video" %>
+                <video controls class="story-card__video">
+                  <source src="<%= media_url %>">
+                </video>
+              <% else %>
+                <div class="story-card__unsupported">
+                  Unsupported story item type.
+                </div>
+              <% end %>
+            </div>
+          </article>
         <% end %>
+      </section>
+    <% else %>
+      <div class="story-empty">
+        <p>No active story right now.</p>
       </div>
     <% end %>
-
-    <% if @story["expires_at"].present? %>
-      <p style="color: #999;">Expires at: <%= @story["expires_at"] %></p>
-    <% end %>
-  <% else %>
-    <div style="background: #1b1b1b; padding: 16px; border-radius: 12px;">
-      <p style="margin: 0;">No active story right now.</p>
-    </div>
-  <% end %>
+  </div>
 </div>
-
-<script>
-  let story = <%= @story.to_json.html_safe %>;
-
-  console.log(story)
-</script>

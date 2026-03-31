@@ -2,8 +2,6 @@
 class FetchInstagramStoryJob < ApplicationJob
   queue_as :default
 
-  STORY_CACHE_KEY = "instagram_story:today"
-
   def perform
     payload = InstagramStoryScraper.new.call
     return if payload.blank? || payload[:items].blank?

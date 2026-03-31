@@ -1,6 +1,4 @@
 class StoriesController < ApplicationController
-  STORY_CACHE_KEY = "instagram_story:today"
-
   def show
     payload = Rails.cache.read(STORY_CACHE_KEY)
 

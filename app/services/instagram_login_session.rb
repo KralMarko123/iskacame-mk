@@ -36,12 +36,7 @@ class InstagramLoginSession
           'input[type="text"]'
         ])
 
-        password_input = find_first_visible(page, [
-          'input[name="password"]',
-          'input[aria-label="Password"]',
-          'input[autocomplete="current-password"]',
-          'input[type="password"]'
-        ])
+        password_input = find_first_visible(page, %w[input[name="password"] input[aria-label="Password"] input[autocomplete="current-password"] input[type="password"]])
 
         raise "Could not find username input" unless username_input
         raise "Could not find password input" unless password_input
