@@ -178,33 +178,11 @@ class InstagramStoryScraper
     false
   end
 
-  def extract_current_frame_as_image(page, current_frame_media)
-    has_video = page.locator("video").count > 0 ||
-                current_frame_media.any? { |entry| usable_story_media?(entry[:url]) && entry[:url].include?(".mp4") }
-
-    if has_video
-      return {
-        type: "image",
-        media_url: screenshot_current_story_frame(page)
-      }
-    end
-
-    dom_item = extract_current_frame_from_dom(page)
-    return dom_item if dom_item.present?
-
-    latest_image = current_frame_media.reverse.find do |entry|
-      url = entry[:url]
-      usable_story_media?(url) && image_story_url?(url)
-    end
-
-    if latest_image
-      return {
-        type: "image",
-        media_url: latest_image[:url]
-      }
-    end
-
-    nil
+  def extract_current_frame_as_image(page, _current_frame_media)
+    {
+      type: "image",
+      media_url: screenshot_current_story_frame(page)
+    }
   end
 
   def extract_current_frame_from_dom(page)
@@ -261,7 +239,7 @@ class InstagramStoryScraper
   end
 
   def centered_story_content_box(page)
-    viewport = page.viewport_size
+    viewport = safe_viewport_size(page)
     width = viewport["width"]
     height = viewport["height"]
 
@@ -454,6 +432,16 @@ class InstagramStoryScraper
     return true if story_media_host?(url) && image_story_url?(url)
 
     false
+  end
+
+  def safe_viewport_size(page)
+    viewport = page.viewport_size
+    return viewport if viewport.present?
+
+    {
+      "width" => page.evaluate("() => window.innerWidth"),
+      "height" => page.evaluate("() => window.innerHeight")
+    }
   end
 
   def story_media_host?(url)
