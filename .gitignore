@@ -67,3 +67,5 @@ yarn-debug.log*
 /storage/*
 !/storage/.keep
 /public/uploads
+/public/story_cache
+/public/tmp/story_frames

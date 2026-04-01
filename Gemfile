@@ -8,6 +8,7 @@ gem "bootsnap", require: false
 gem "redis"
 gem "connection_pool", "< 3.0"
 gem "playwright-ruby-client"
+gem "sprockets-rails"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

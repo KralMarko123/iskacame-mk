@@ -242,6 +242,14 @@ GEM
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
+    sprockets (4.2.2)
+      concurrent-ruby (~> 1.0)
+      logger
+      rack (>= 2.2.4, < 4)
+    sprockets-rails (3.5.2)
+      actionpack (>= 6.1)
+      activesupport (>= 6.1)
+      sprockets (>= 3.0.0)
     stringio (3.2.0)
     thor (1.5.0)
     timeout (0.6.1)
@@ -275,6 +283,7 @@ DEPENDENCIES
   rails (~> 7.2.3)
   redis
   rubocop-rails-omakase
+  sprockets-rails
   tzinfo-data
 
 BUNDLED WITH
