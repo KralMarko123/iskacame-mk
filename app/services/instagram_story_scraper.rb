@@ -1,6 +1,8 @@
 require "json"
 require "set"
 require "fileutils"
+require "uri"
+require "cgi"
 
 class InstagramStoryScraper
   MAX_STORIES = 50
@@ -118,7 +120,7 @@ class InstagramStoryScraper
 
       puts "Frame buffer size before extract: #{current_frame_media.size}"
 
-      current_item = extract_current_frame_as_image(page, current_frame_media)
+      current_item = extract_current_frame(page, current_frame_media)
 
       if current_item && !seen_urls.include?(current_item[:media_url])
         seen_urls << current_item[:media_url]
@@ -178,7 +180,35 @@ class InstagramStoryScraper
     false
   end
 
-  def extract_current_frame_as_image(page, _current_frame_media)
+  def extract_current_frame(page, current_frame_media)
+    dom_item = extract_current_frame_from_dom(page)
+    return dom_item if dom_item.present?
+
+    latest_image = current_frame_media.reverse.find do |entry|
+      url = entry[:url]
+      usable_story_media?(url) && image_story_url?(url)
+    end
+
+    if latest_image
+      return {
+        type: "image",
+        media_url: latest_image[:url]
+      }
+    end
+
+    latest_video = current_frame_media.reverse.find do |entry|
+      url = entry[:url]
+      usable_story_media?(url) && video_story_url?(url)
+    end
+
+    if latest_video
+      return {
+        type: "video",
+        media_url: normalize_video_url(latest_video[:url]),
+        fallback_image_url: screenshot_current_story_frame(page)
+      }
+    end
+
     {
       type: "image",
       media_url: screenshot_current_story_frame(page)
@@ -186,14 +216,13 @@ class InstagramStoryScraper
   end
 
   def extract_current_frame_from_dom(page)
-    # Prefer viewer-scoped selectors first
     selectors = [
       '[role="dialog"] img',
       '[role="dialog"] video',
-      'main img',
-      'main video',
-      'article img',
-      'article video'
+      "main img",
+      "main video",
+      "article img",
+      "article video"
     ]
 
     selectors.each do |selector|
@@ -204,14 +233,37 @@ class InstagramStoryScraper
 
         (0...count).each do |i|
           node = locator.nth(i)
+
           src = node.get_attribute("src")
           poster = node.get_attribute("poster")
+          tag_name = node.evaluate("el => el.tagName.toLowerCase()") rescue nil
 
-          candidate = poster.presence || src
-          next if candidate.blank?
-          next unless valid_story_image_candidate?(candidate)
+          if tag_name == "img"
+            next if src.blank?
+            next unless valid_story_image_candidate?(src)
 
-          return { type: "image", media_url: candidate }
+            return {
+              type: "image",
+              media_url: src
+            }
+          end
+
+          if tag_name == "video"
+            if src.present? && valid_story_video_candidate?(src)
+              return {
+                type: "video",
+                media_url: normalize_video_url(src),
+                fallback_image_url: screenshot_current_story_frame(page)
+              }
+            end
+
+            if poster.present? && valid_story_image_candidate?(poster)
+              return {
+                type: "image",
+                media_url: poster
+              }
+            end
+          end
         end
       rescue => e
         puts "DOM extract error for #{selector}: #{e.message}"
@@ -298,128 +350,8 @@ class InstagramStoryScraper
     raise "Could not determine viewport size"
   end
 
-  def best_story_content_box(page)
-    viewport = page.viewport_size
-    return nil unless viewport
-
-    viewport_width = viewport["width"]
-    viewport_height = viewport["height"]
-
-    selectors = [
-      '[role="dialog"] img',
-      'main img',
-      'article img'
-    ]
-
-    candidates = []
-
-    selectors.each do |selector|
-      begin
-        locator = page.locator(selector)
-        count = locator.count
-
-        (0...count).each do |i|
-          node = locator.nth(i)
-          src = node.get_attribute("src")
-          next if src.blank?
-          next if likely_avatar?(src)
-          next unless valid_story_image_candidate?(src)
-
-          box = node.bounding_box
-          next if box.nil?
-
-          width = box["width"]
-          height = box["height"]
-          next if width < 120 || height < 180
-
-          width_ratio = width / viewport_width.to_f
-          height_ratio = height / viewport_height.to_f
-          aspect_ratio = height / width.to_f
-
-          next if aspect_ratio < 1.1
-
-          # Skip images that are basically the whole story shell/background
-          next if width_ratio > 0.88
-          next if height_ratio > 0.92
-
-          center_x = box["x"] + (width / 2.0)
-          center_y = box["y"] + (height / 2.0)
-
-          viewport_center_x = viewport_width / 2.0
-          viewport_center_y = viewport_height / 2.0
-
-          distance = ((center_x - viewport_center_x).abs + (center_y - viewport_center_y).abs)
-
-          # Prefer a centered portrait card that is medium-sized, not huge.
-          ideal_width_ratio = 0.42
-          ideal_height_ratio = 0.62
-
-          width_penalty = (width_ratio - ideal_width_ratio).abs * 1000
-          height_penalty = (height_ratio - ideal_height_ratio).abs * 1000
-          distance_penalty = distance * 2
-
-          score = 10_000 - width_penalty - height_penalty - distance_penalty
-
-          candidates << {
-            box: box,
-            score: score
-          }
-        end
-      rescue => e
-        puts "Candidate scan failed for #{selector}: #{e.message}"
-      end
-    end
-
-    best = candidates.max_by { |candidate| candidate[:score] }
-    best&.dig(:box)
-  end
-
-  def expand_box(box, viewport)
-    padding_x = box["width"] * 0.03
-    padding_y = box["height"] * 0.03
-
-    x = [box["x"] - padding_x, 0].max
-    y = [box["y"] - padding_y, 0].max
-
-    max_width = viewport["width"] - x
-    max_height = viewport["height"] - y
-
-    width = [box["width"] + (padding_x * 2), max_width].min
-    height = [box["height"] + (padding_y * 2), max_height].min
-
-    {
-      x: x,
-      y: y,
-      width: width,
-      height: height
-    }
-  end
-
-  def trim_story_box(box)
-    x = box["x"]
-    y = box["y"]
-    width = box["width"]
-    height = box["height"]
-
-    left_trim   = width * 0.03
-    right_trim  = width * 0.03
-    top_trim    = height * 0.14
-    bottom_trim = height * 0.12
-
-    {
-      x: x + left_trim,
-      y: y + top_trim,
-      width: width - left_trim - right_trim,
-      height: height - top_trim - bottom_trim
-    }
-  end
-
   def click_next_story(page)
-    selectors = [
-      'svg[aria-label="Next"]',
-      'button[aria-label="Next"]',
-      'div[role="button"][aria-label="Next"]'
-    ]
+    selectors = %w[svg[aria-label="Next"] button[aria-label="Next"] div[role="button"][aria-label="Next"]]
 
     selectors.each do |selector|
       begin
@@ -456,7 +388,7 @@ class InstagramStoryScraper
   end
 
   def usable_story_media?(url)
-    story_media_url?(url) && !url.start_with?("blob:")
+    story_media_url?(url)
   end
 
   def image_story_url?(url)
@@ -520,5 +452,32 @@ class InstagramStoryScraper
     end
 
     nil
+  end
+
+  def video_story_url?(url)
+    url.include?(".mp4")
+  end
+
+  def valid_story_video_candidate?(url)
+    return false if url.blank?
+    return false if url.start_with?("blob:")
+    return false if instagram_ui_asset?(url)
+    return false unless story_media_host?(url)
+
+    video_story_url?(url)
+  end
+
+  def normalize_video_url(url)
+    return url if url.blank?
+    return url unless url.include?(".mp4")
+
+    uri = URI.parse(url)
+    params = CGI.parse(uri.query.to_s)
+    params.delete("bytestart")
+    params.delete("byteend")
+    uri.query = URI.encode_www_form(params.transform_values(&:first))
+    uri.to_s
+  rescue
+    url
   end
 end

@@ -69,12 +69,14 @@
     box-shadow:
             0 28px 60px rgba(16, 24, 40, 0.16),
             0 10px 26px rgba(16, 24, 40, 0.08);
-    cursor: pointer;
 }
 
-.story-card__media {
+.story-card__media,
+.story-card__video-shell {
     aspect-ratio: 10 / 16;
     background: #cfd8e3;
+    overflow: hidden;
+    position: relative;
 }
 
 .story-card__img,
@@ -84,6 +86,10 @@
     display: block;
     object-fit: cover;
     background: #cfd8e3;
+}
+
+.story-card__autoplay-video {
+    pointer-events: none;
 }
 
 .story-card__unsupported {
