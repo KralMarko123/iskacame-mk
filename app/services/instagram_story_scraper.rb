@@ -3,7 +3,7 @@ require "set"
 require "fileutils"
 
 class InstagramStoryScraper
-  MAX_STORIES = 20
+  MAX_STORIES = 50
 
   def initialize(profile_username:)
     @profile_username = profile_username
@@ -240,14 +240,21 @@ class InstagramStoryScraper
 
   def centered_story_content_box(page)
     viewport = safe_viewport_size(page)
-    width = viewport["width"]
-    height = viewport["height"]
 
-    crop_width = width * 0.52
-    crop_height = height * 0.64
+    width = viewport[:width] || viewport["width"]
+    height = viewport[:height] || viewport["height"]
 
-    x = (width - crop_width) / 2.0
-    y = height * 0.28
+    raise "Viewport width missing: #{viewport.inspect}" if width.nil?
+    raise "Viewport height missing: #{viewport.inspect}" if height.nil?
+
+    width = width.to_f
+    height = height.to_f
+
+    crop_width = width * 0.3
+    crop_height = height * 0.86
+
+    x = ((width - crop_width) / 2.0) - 5
+    y = height * 0.12
 
     {
       x: x,
@@ -255,6 +262,40 @@ class InstagramStoryScraper
       width: crop_width,
       height: crop_height
     }
+  end
+
+  def safe_viewport_size(page)
+    viewport = page.viewport_size
+
+    width =
+      if viewport.respond_to?(:[])
+        viewport[:width] || viewport["width"]
+      end
+
+    height =
+      if viewport.respond_to?(:[])
+        viewport[:height] || viewport["height"]
+      end
+
+    if width.present? && height.present?
+      return { width: width, height: height }
+    end
+
+    width = page.evaluate("window.innerWidth")
+    height = page.evaluate("window.innerHeight")
+
+    if width.present? && height.present?
+      return { width: width, height: height }
+    end
+
+    width = page.evaluate("document.documentElement.clientWidth")
+    height = page.evaluate("document.documentElement.clientHeight")
+
+    if width.present? && height.present?
+      return { width: width, height: height }
+    end
+
+    raise "Could not determine viewport size"
   end
 
   def best_story_content_box(page)
@@ -432,16 +473,6 @@ class InstagramStoryScraper
     return true if story_media_host?(url) && image_story_url?(url)
 
     false
-  end
-
-  def safe_viewport_size(page)
-    viewport = page.viewport_size
-    return viewport if viewport.present?
-
-    {
-      "width" => page.evaluate("() => window.innerWidth"),
-      "height" => page.evaluate("() => window.innerHeight")
-    }
   end
 
   def story_media_host?(url)

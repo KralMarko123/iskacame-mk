@@ -1,11 +1,20 @@
 <div class="story-page">
   <div class="story-page__inner">
     <header class="story-page__header">
-      <h1 class="story-page__title">Today's Stories</h1>
+      <h1 class="story-page__title">Today’s events</h1>
 
-      <% if @story["source"].present? %>
+      <% if @story["source"].present? || @story["fetched_at"].present? %>
         <p class="story-page__meta">
-          Source: <span><%= @story["source"] %></span>
+          <% if @story["source"].present? %>
+            from <span>@<%= @story["source"] %></span>
+          <% end %>
+          <% if @story["fetched_at"].present? %>
+            <span class="story-page__meta-separator">•</span>
+            last calculated at
+            <span>
+              <%= Time.zone.parse(@story["fetched_at"]).strftime("%H:%M") rescue @story["fetched_at"] %>
+            </span>
+          <% end %>
         </p>
       <% end %>
     </header>
@@ -17,11 +26,13 @@
           <% media_url = item["media_url"] || item[:media_url] %>
           <% order = item["order"] || item[:order] %>
 
-          <article class="story-card">
-            <div class="story-card__top">
-              <span class="story-card__label">Story <%= order %></span>
-            </div>
-
+          <article
+            class="story-card"
+            aria-label="Story <%= order %>"
+            <% if type == "image" %>
+            data-lightbox-image="<%= media_url %>"
+            <% end %>
+            >
             <div class="story-card__media">
               <% if type == "image" %>
                 <img
@@ -49,3 +60,59 @@
     <% end %>
   </div>
 </div>
+
+<div class="story-lightbox" id="story-lightbox" aria-hidden="true">
+  <div class="story-lightbox__backdrop"></div>
+
+  <div class="story-lightbox__dialog" role="dialog" aria-modal="true" aria-label="Expanded story image">
+    <button class="story-lightbox__close" type="button" aria-label="Close image viewer">
+      ×
+    </button>
+
+    <img class="story-lightbox__image" src="" alt="Expanded story image" />
+  </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const lightbox = document.getElementById("story-lightbox");
+        const lightboxImage = lightbox?.querySelector(".story-lightbox__image");
+        const closeButton = lightbox?.querySelector(".story-lightbox__close");
+        const backdrop = lightbox?.querySelector(".story-lightbox__backdrop");
+        const clickableCards = document.querySelectorAll("[data-lightbox-image]");
+
+        if (!lightbox || !lightboxImage) return;
+
+        const openLightbox = (src) => {
+            lightboxImage.src = src;
+            lightbox.classList.add("is-open");
+            lightbox.setAttribute("aria-hidden", "false");
+            document.body.classList.add("story-lightbox-open");
+        };
+
+        const closeLightbox = () => {
+            lightbox.classList.remove("is-open");
+            lightbox.setAttribute("aria-hidden", "true");
+            lightboxImage.src = "";
+            document.body.classList.remove("story-lightbox-open");
+        };
+
+        clickableCards.forEach((card) => {
+            card.addEventListener("click", function () {
+                const src = card.getAttribute("data-lightbox-image");
+                if (src) openLightbox(src);
+            });
+
+            card.style.cursor = "zoom-in";
+        });
+
+        closeButton?.addEventListener("click", closeLightbox);
+        backdrop?.addEventListener("click", closeLightbox);
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && lightbox.classList.contains("is-open")) {
+                closeLightbox();
+            }
+        });
+    });
+</script>
