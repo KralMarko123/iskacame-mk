@@ -58,14 +58,12 @@
     <orderEntry type="library" scope="PROVIDED" name="drb (v2.2.3, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="erb (v6.0.2, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="erubi (v1.13.1, ruby-3.3.6-p108) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="fast_ignore (v0.17.4, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="globalid (v1.3.0, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="i18n (v1.14.8, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="io-console (v0.8.2, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="irb (v1.17.0, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="json (v2.19.3, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="language_server-protocol (v3.17.0.5, ruby-3.3.6-p108) [gem]" level="application" />
-    <orderEntry type="library" scope="TEST" name="leftovers (v0.12.2, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="lint_roller (v1.1.0, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="logger (v1.7.0, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="loofah (v2.25.1, ruby-3.3.6-p108) [gem]" level="application" />
@@ -106,7 +104,7 @@
     <orderEntry type="library" scope="PROVIDED" name="redis-client (v0.28.0, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="regexp_parser (v2.11.3, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="reline (v0.6.3, ruby-3.3.6-p108) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="rubocop (v1.86.0, ruby-3.3.6-p108) [gem]" level="application" />
+    <orderEntry type="library" scope="TEST" name="rubocop (v1.86.0, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="rubocop-ast (v1.49.1, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="rubocop-performance (v1.26.1, ruby-3.3.6-p108) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="rubocop-rails (v2.34.3, ruby-3.3.6-p108) [gem]" level="application" />
