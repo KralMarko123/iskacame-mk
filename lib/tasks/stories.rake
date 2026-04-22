@@ -43,25 +43,26 @@ def embed_local_media_uploads(items)
   items.map do |item|
     item = item.deep_stringify_keys
 
-    if local_story_cache_url?(item["media_url"])
-      item["media_upload"] = upload_for_story_cache_url(item["media_url"])
+    if local_public_media_url?(item["media_url"])
+      item["media_upload"] = upload_for_public_media_url(item["media_url"])
     end
 
-    if local_story_cache_url?(item["fallback_image_url"])
-      item["fallback_image_upload"] = upload_for_story_cache_url(item["fallback_image_url"])
+    if local_public_media_url?(item["fallback_image_url"])
+      item["fallback_image_upload"] = upload_for_public_media_url(item["fallback_image_url"])
     end
 
     item
   end
 end
 
-def local_story_cache_url?(url)
-  url.to_s.start_with?("/story_cache/")
+def local_public_media_url?(url)
+  url = url.to_s
+  url.start_with?("/story_cache/") || url.start_with?("/tmp/story_frames/")
 end
 
-def upload_for_story_cache_url(url)
+def upload_for_public_media_url(url)
   filename = File.basename(url)
-  path = Rails.root.join("public", "story_cache", filename)
+  path = Rails.root.join("public", url.delete_prefix("/"))
   raise "Missing local media file for #{url}: #{path}" unless File.file?(path)
 
   {

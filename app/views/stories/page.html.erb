@@ -149,36 +149,6 @@
 
             if (!video) return;
 
-            let checkedFrame = false;
-
-            const fallbackIfNeeded = () => {
-                if (!video.videoWidth || !video.videoHeight) {
-                    replaceWithFallback(shell, fallbackSrc);
-                    return;
-                }
-
-                if (checkedFrame) return;
-                checkedFrame = true;
-
-                try {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = 1;
-                    canvas.height = 1;
-
-                    const ctx = canvas.getContext("2d");
-                    ctx.drawImage(video, Math.floor(video.videoWidth / 2), Math.floor(video.videoHeight / 2), 1, 1, 0, 0, 1, 1);
-
-                    const pixel = ctx.getImageData(0, 0, 1, 1).data;
-                    const isNearlyBlack = pixel[0] < 8 && pixel[1] < 8 && pixel[2] < 8;
-
-                    if (isNearlyBlack && fallbackSrc) {
-                        replaceWithFallback(shell, fallbackSrc);
-                    }
-                } catch (_error) {
-                    if (fallbackSrc) replaceWithFallback(shell, fallbackSrc);
-                }
-            };
-
             video.addEventListener("error", () => replaceWithFallback(shell, fallbackSrc));
 
             video.addEventListener("loadedmetadata", () => {
@@ -188,10 +158,6 @@
                 if (invalidDuration || invalidSize) {
                     replaceWithFallback(shell, fallbackSrc);
                 }
-            });
-
-            video.addEventListener("canplay", () => {
-                setTimeout(fallbackIfNeeded, 300);
             });
 
             video.play().catch(() => replaceWithFallback(shell, fallbackSrc));
