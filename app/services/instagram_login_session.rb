@@ -11,7 +11,10 @@ class InstagramLoginSession
     Playwright.create(
       playwright_cli_executable_path: ENV.fetch("PLAYWRIGHT_CLI_EXECUTABLE_PATH", "npx playwright")
     ) do |playwright|
-      browser = playwright.chromium.launch(headless: false)
+      browser = playwright.chromium.launch(
+        headless: ENV.fetch("PLAYWRIGHT_HEADLESS", "false") == "true",
+        args: ENV.fetch("PLAYWRIGHT_NO_SANDBOX", "true") == "true" ? %w[--no-sandbox --disable-dev-shm-usage] : []
+      )
       context = browser.new_context(ignoreHTTPSErrors: true)
       page = context.new_page
 

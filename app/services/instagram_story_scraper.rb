@@ -3,6 +3,7 @@ require "set"
 require "fileutils"
 require "uri"
 require "cgi"
+require "playwright"
 
 class InstagramStoryScraper
   MAX_STORIES = 50
@@ -18,7 +19,10 @@ class InstagramStoryScraper
     Playwright.create(
       playwright_cli_executable_path: ENV.fetch("PLAYWRIGHT_CLI_EXECUTABLE_PATH", "npx playwright")
     ) do |playwright|
-      browser = playwright.chromium.launch(headless: false)
+      browser = playwright.chromium.launch(
+        headless: playwright_headless?,
+        args: playwright_launch_args
+      )
       context = browser.new_context(
         ignoreHTTPSErrors: true,
         storageState: storage_state_path
@@ -77,6 +81,14 @@ class InstagramStoryScraper
   private
 
   attr_reader :profile_username
+
+  def playwright_headless?
+    ENV.fetch("PLAYWRIGHT_HEADLESS", "true") != "false"
+  end
+
+  def playwright_launch_args
+    ENV.fetch("PLAYWRIGHT_NO_SANDBOX", "true") == "true" ? %w[--no-sandbox --disable-dev-shm-usage] : []
+  end
 
   def story_url
     "https://www.instagram.com/stories/#{profile_username}/"

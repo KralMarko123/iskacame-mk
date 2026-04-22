@@ -3,7 +3,9 @@ class FetchInstagramStoryJob < ApplicationJob
   queue_as :default
 
   def perform
-    payload = InstagramStoryScraper.new.call
+    payload = InstagramStoryScraper.new(
+      profile_username: ENV.fetch("INSTAGRAM_TARGET_PROFILE")
+    ).call
     return if payload.blank? || payload[:items].blank?
 
     Rails.cache.write(

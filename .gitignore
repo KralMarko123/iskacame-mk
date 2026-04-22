@@ -69,3 +69,4 @@ yarn-debug.log*
 /public/uploads
 /public/story_cache
 /public/tmp/story_frames
+.htaccess
