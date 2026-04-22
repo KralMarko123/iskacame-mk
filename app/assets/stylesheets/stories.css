@@ -148,7 +148,8 @@
     padding: 2rem;
 }
 
-.story-lightbox__image {
+.story-lightbox__image,
+.story-lightbox__video {
     max-width: min(92vw, 900px);
     max-height: 90vh;
     width: auto;
@@ -158,6 +159,11 @@
             0 30px 80px rgba(0, 0, 0, 0.28),
             0 10px 24px rgba(0, 0, 0, 0.16);
     background: #fff;
+}
+
+.story-lightbox__video {
+    aspect-ratio: 10 / 16;
+    background: #000;
 }
 
 .story-lightbox__close {

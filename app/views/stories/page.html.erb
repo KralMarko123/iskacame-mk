@@ -32,9 +32,14 @@
             class="story-card"
             aria-label="Story <%= order %>"
             <% if type == "image" %>
-            data-lightbox-image="<%= media_url %>"
-            <% elsif type == "video" && fallback_image_url.present? %>
-            data-lightbox-image="<%= fallback_image_url %>"
+            data-lightbox-type="image"
+            data-lightbox-media="<%= media_url %>"
+            <% elsif type == "video" %>
+            data-lightbox-type="video"
+            data-lightbox-media="<%= media_url %>"
+            <% if fallback_image_url.present? %>
+            data-lightbox-fallback="<%= fallback_image_url %>"
+            <% end %>
             <% end %>
             >
             <div class="story-card__media">
@@ -83,6 +88,7 @@
   <div class="story-lightbox__dialog" role="dialog" aria-modal="true" aria-label="Expanded story image">
     <button class="story-lightbox__close" type="button" aria-label="Close image viewer">×</button>
     <img class="story-lightbox__image" src="" alt="Expanded story image" />
+    <video class="story-lightbox__video" controls autoplay muted loop playsinline preload="metadata" hidden></video>
   </div>
 </div>
 
@@ -90,24 +96,55 @@
     document.addEventListener("DOMContentLoaded", function () {
         const lightbox = document.getElementById("story-lightbox");
         const lightboxImage = lightbox?.querySelector(".story-lightbox__image");
+        const lightboxVideo = lightbox?.querySelector(".story-lightbox__video");
         const closeButton = lightbox?.querySelector(".story-lightbox__close");
         const backdrop = lightbox?.querySelector(".story-lightbox__backdrop");
-        const clickableCards = document.querySelectorAll("[data-lightbox-image]");
+        const clickableCards = document.querySelectorAll("[data-lightbox-media]");
         const videoShells = document.querySelectorAll(".story-card__video-shell");
 
-        const openLightbox = (src) => {
-            if (!lightbox || !lightboxImage || !src) return;
-            lightboxImage.src = src;
+        const openLightbox = (type, src, fallbackSrc) => {
+            if (!lightbox || !lightboxImage || !lightboxVideo || !src) return;
+
+            lightboxImage.hidden = true;
+            lightboxImage.src = "";
+            lightboxVideo.hidden = true;
+            lightboxVideo.pause();
+            lightboxVideo.removeAttribute("src");
+            lightboxVideo.poster = fallbackSrc || "";
+            lightboxVideo.load();
+
+            if (type === "video") {
+                lightboxVideo.src = src;
+                lightboxVideo.hidden = false;
+                lightboxVideo.load();
+                lightboxVideo.play().catch(() => {
+                    if (!fallbackSrc) return;
+
+                    lightboxVideo.hidden = true;
+                    lightboxImage.src = fallbackSrc;
+                    lightboxImage.hidden = false;
+                });
+            } else {
+                lightboxImage.src = src;
+                lightboxImage.hidden = false;
+            }
+
             lightbox.classList.add("is-open");
             lightbox.setAttribute("aria-hidden", "false");
             document.body.classList.add("story-lightbox-open");
         };
 
         const closeLightbox = () => {
-            if (!lightbox || !lightboxImage) return;
+            if (!lightbox || !lightboxImage || !lightboxVideo) return;
             lightbox.classList.remove("is-open");
             lightbox.setAttribute("aria-hidden", "true");
             lightboxImage.src = "";
+            lightboxImage.hidden = true;
+            lightboxVideo.pause();
+            lightboxVideo.removeAttribute("src");
+            lightboxVideo.poster = "";
+            lightboxVideo.hidden = true;
+            lightboxVideo.load();
             document.body.classList.remove("story-lightbox-open");
         };
 
@@ -127,8 +164,10 @@
 
         clickableCards.forEach((card) => {
             card.addEventListener("click", function () {
-                const src = card.getAttribute("data-lightbox-image");
-                if (src) openLightbox(src);
+                const type = card.getAttribute("data-lightbox-type") || "image";
+                const src = card.getAttribute("data-lightbox-media");
+                const fallbackSrc = card.getAttribute("data-lightbox-fallback");
+                if (src) openLightbox(type, src, fallbackSrc);
             });
 
             card.style.cursor = "zoom-in";
