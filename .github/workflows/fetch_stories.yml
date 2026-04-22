@@ -52,7 +52,7 @@ jobs:
           mkdir -p tmp
           printf '%s' "$INSTAGRAM_STORAGE_STATE_BASE64" | base64 -d > "$INSTAGRAM_STORAGE_STATE_PATH"
 
-       - name: Check publish token
+      - name: Check publish token
         run: test -n "$STORY_CACHE_WRITE_TOKEN"
 
       - name: Fetch and publish stories
