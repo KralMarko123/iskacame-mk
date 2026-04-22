@@ -7,7 +7,12 @@ module Internal
     skip_before_action :verify_authenticity_token
 
     def create
-      return head :unauthorized unless valid_write_token?
+      unless valid_write_token?
+        Rails.logger.warn(
+          "[Internal::StoryCachesController] Unauthorized story cache write: #{token_status}"
+        )
+        return render json: { ok: false, error: "unauthorized", token_status: token_status }, status: :unauthorized
+      end
 
       payload = story_payload
       payload["items"] = persist_uploaded_media(payload["items"] || [])
@@ -47,6 +52,16 @@ module Internal
       supplied_digest = Digest::SHA256.hexdigest(supplied)
 
       ActiveSupport::SecurityUtils.secure_compare(supplied_digest, expected_digest)
+    end
+
+    def token_status
+      expected = ENV.fetch("STORY_CACHE_WRITE_TOKEN", "")
+      supplied = request.headers["X-Story-Cache-Token"].to_s
+
+      return "server_token_missing" if expected.blank?
+      return "request_token_missing" if supplied.blank?
+
+      "token_mismatch"
     end
 
     def persist_uploaded_media(items)

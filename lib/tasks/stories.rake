@@ -9,6 +9,7 @@ namespace :stories do
     profile_username = ENV.fetch("INSTAGRAM_TARGET_PROFILE")
     publish_url = ENV.fetch("STORY_CACHE_WRITE_URL")
     publish_token = ENV.fetch("STORY_CACHE_WRITE_TOKEN")
+    raise "STORY_CACHE_WRITE_TOKEN is blank" if publish_token.blank?
 
     payload = InstagramStoryScraper.new(profile_username: profile_username).call
     payload = payload.deep_stringify_keys
