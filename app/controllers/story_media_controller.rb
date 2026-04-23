@@ -5,8 +5,15 @@ class StoryMediaController < ApplicationController
 
     return head :not_found unless File.file?(path)
 
+    data = File.binread(path)
+    Rails.logger.info(
+      "[StoryMediaController] Serving #{filename}: path=#{path}, bytes=#{data.bytesize}, content_type=#{content_type_for(filename)}"
+    )
+    response.headers["X-Story-Media-Path"] = path.to_s
+    response.headers["X-Story-Media-Bytes"] = data.bytesize.to_s
+
     send_data(
-      File.binread(path),
+      data,
       filename: filename,
       disposition: "inline",
       type: content_type_for(filename)
