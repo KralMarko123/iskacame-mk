@@ -6,7 +6,7 @@ gem "puma", ">= 5.0"
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 gem "redis"
-gem "connection_pool", "< 3.0"
+gem "connection_pool", "< 4.0"
 gem "playwright-ruby-client"
 gem "sprockets-rails"
 
