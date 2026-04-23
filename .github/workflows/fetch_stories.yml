@@ -60,4 +60,9 @@ jobs:
         run: test -n "$STORY_CACHE_WRITE_TOKEN"
 
       - name: Fetch and publish stories
-        run: bundle exec rails stories:fetch_and_publish
+        run: |
+          bundle exec rails stories:fetch_and_publish || {
+            echo "First fetch attempt failed. Retrying once in 60 seconds..."
+            sleep 60
+            bundle exec rails stories:fetch_and_publish
+          }
