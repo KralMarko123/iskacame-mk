@@ -299,7 +299,7 @@ class InstagramStoryScraper
       clip: box
     )
 
-    "/story_cache/#{filename}"
+    "/media/story_cache/#{filename}"
   end
 
   def centered_story_content_box(page)

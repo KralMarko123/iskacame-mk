@@ -57,12 +57,15 @@ end
 
 def local_public_media_url?(url)
   url = url.to_s
-  url.start_with?("/story_cache/") || url.start_with?("/tmp/story_frames/")
+  url.start_with?("/story_cache/") ||
+    url.start_with?("/media/story_cache/") ||
+    url.start_with?("/tmp/story_frames/")
 end
 
 def upload_for_public_media_url(url)
   filename = File.basename(url)
-  path = Rails.root.join("public", url.delete_prefix("/"))
+  relative_path = url.delete_prefix("/").delete_prefix("media/")
+  path = Rails.root.join("public", relative_path)
   raise "Missing local media file for #{url}: #{path}" unless File.file?(path)
 
   {

@@ -92,7 +92,7 @@ module Internal
 
       File.binwrite(output_dir.join(filename), data)
 
-      "/story_cache/#{filename}"
+      "/media/story_cache/#{filename}"
     end
 
     def safe_filename(filename)

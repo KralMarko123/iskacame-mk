@@ -30,7 +30,7 @@ class StoryMediaDownloader
         download_file(source_url, absolute_path)
         item.merge(
           type: type,
-          media_url: "/story_cache/#{filename}",
+          media_url: "/media/story_cache/#{filename}",
           fallback_image_url: fallback_image_url
         )
       rescue => e
