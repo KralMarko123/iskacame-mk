@@ -1,6 +1,7 @@
 require "base64"
 require "digest"
 require "fileutils"
+require "set"
 
 module Internal
   class StoryCachesController < ApplicationController
@@ -22,10 +23,12 @@ module Internal
         payload,
         expires_in: seconds_until_midnight
       )
+      deleted_count = cleanup_story_cache_except(referenced_story_cache_filenames(payload))
 
       render json: {
         ok: true,
         items_count: payload["items"].size,
+        deleted_count: deleted_count,
         expires_in: seconds_until_midnight
       }
     rescue ActionController::ParameterMissing => e
@@ -93,6 +96,42 @@ module Internal
       File.binwrite(output_dir.join(filename), data)
 
       "/media/story_cache/#{filename}"
+    end
+
+    def referenced_story_cache_filenames(payload)
+      Array(payload["items"]).flat_map do |item|
+        item = item.deep_stringify_keys
+        [
+          story_cache_filename(item["media_url"]),
+          story_cache_filename(item["fallback_image_url"])
+        ]
+      end.compact.to_set
+    end
+
+    def story_cache_filename(url)
+      url = url.to_s
+      return nil unless url.start_with?("/media/story_cache/") || url.start_with?("/story_cache/")
+
+      File.basename(url)
+    end
+
+    def cleanup_story_cache_except(keep_filenames)
+      output_dir = Rails.root.join("public", "story_cache")
+      return 0 unless Dir.exist?(output_dir)
+
+      deleted_count = 0
+
+      Dir.glob(output_dir.join("*")).each do |path|
+        next unless File.file?(path)
+        next if keep_filenames.include?(File.basename(path))
+
+        File.delete(path)
+        deleted_count += 1
+      rescue => e
+        Rails.logger.warn("[Internal::StoryCachesController] Could not delete #{path}: #{e.message}")
+      end
+
+      deleted_count
     end
 
     def safe_filename(filename)

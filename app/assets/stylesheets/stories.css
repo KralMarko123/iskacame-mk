@@ -57,15 +57,10 @@
     box-shadow:
             0 12px 28px rgba(16, 24, 40, 0.08),
             0 3px 10px rgba(16, 24, 40, 0.05);
-    transition:
-            transform 220ms ease,
-            box-shadow 220ms ease;
-    transform: translateY(0) scale(1);
-    will-change: transform;
+    transition: box-shadow 220ms ease;
 }
 
 .story-card:hover {
-    transform: translateY(-14px) scale(1.03);
     box-shadow:
             0 28px 60px rgba(16, 24, 40, 0.16),
             0 10px 26px rgba(16, 24, 40, 0.08);
@@ -86,6 +81,8 @@
     display: block;
     object-fit: cover;
     background: #cfd8e3;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .story-card__autoplay-video {
@@ -208,7 +205,4 @@
         margin: 0 auto;
     }
 
-    .story-card:hover {
-        transform: translateY(-8px) scale(1.02);
-    }
 }
