@@ -5,8 +5,9 @@ class StoryMediaController < ApplicationController
 
     return head :not_found unless File.file?(path)
 
-    send_file(
-      path,
+    send_data(
+      File.binread(path),
+      filename: filename,
       disposition: "inline",
       type: content_type_for(filename)
     )
