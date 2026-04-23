@@ -286,7 +286,7 @@ class InstagramStoryScraper
   end
 
   def screenshot_current_story_frame(page)
-    output_dir = Rails.root.join("public", "tmp", "story_frames")
+    output_dir = Rails.root.join("public", "story_cache")
     FileUtils.mkdir_p(output_dir)
 
     filename = "story_frame_#{Time.current.to_i}_#{rand(1000..9999)}.png"
@@ -299,7 +299,7 @@ class InstagramStoryScraper
       clip: box
     )
 
-    "/tmp/story_frames/#{filename}"
+    "/story_cache/#{filename}"
   end
 
   def centered_story_content_box(page)
