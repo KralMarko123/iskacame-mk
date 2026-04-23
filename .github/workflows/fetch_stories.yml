@@ -2,7 +2,7 @@ name: Fetch Instagram Stories
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "0 8,15 * * *"
   workflow_dispatch:
 
 concurrency:
