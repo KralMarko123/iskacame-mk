@@ -13,9 +13,6 @@ class InstagramStoryScraper
   end
 
   def call
-    storage_state_path = ENV.fetch("INSTAGRAM_STORAGE_STATE_PATH", "tmp/instagram_auth.json")
-    raise "Missing Instagram auth state at #{storage_state_path}" unless File.exist?(storage_state_path)
-
     Playwright.create(
       playwright_cli_executable_path: ENV.fetch("PLAYWRIGHT_CLI_EXECUTABLE_PATH", "npx playwright")
     ) do |playwright|
@@ -23,13 +20,12 @@ class InstagramStoryScraper
         headless: playwright_headless?,
         args: playwright_launch_args
       )
-      context = browser.new_context(
-        ignoreHTTPSErrors: true,
-        storageState: storage_state_path
-      )
+      context = browser.new_context(ignoreHTTPSErrors: true)
       page = context.new_page
 
       begin
+        InstagramLoginSession.new.login!(page)
+
         current_frame_media = []
 
         page.on("response", ->(response) do

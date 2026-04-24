@@ -19,50 +19,7 @@ class InstagramLoginSession
       page = context.new_page
 
       begin
-        page.goto(LOGIN_URL, waitUntil: "domcontentloaded", timeout: 30_000)
-        page.wait_for_timeout(5000)
-
-        dismiss_cookie_banner(page)
-
-        page.screenshot(path: "tmp/instagram_login_page.png", fullPage: true)
-
-        puts "TITLE: #{page.title}"
-        puts "URL: #{page.url}"
-
-        debug_inputs(page)
-
-        username_input = find_first_visible(page, [
-          'input[name="username"]',
-          'input[aria-label="Phone number, username, or email"]',
-          'input[aria-label="Phone number, username or email"]',
-          'input[autocomplete="username"]',
-          'input[type="text"]'
-        ])
-
-        password_input = find_first_visible(page, %w[input[name="password"] input[aria-label="Password"] input[autocomplete="current-password"] input[type="password"]])
-
-        raise "Could not find username input" unless username_input
-        raise "Could not find password input" unless password_input
-
-        username_input.fill(ENV.fetch("INSTAGRAM_USERNAME"))
-        password_input.fill(ENV.fetch("INSTAGRAM_PASSWORD"))
-
-        submit_button = find_first_visible(page, [
-          'button[type="submit"]',
-          'button:has-text("Log in")',
-          'button:has-text("Log In")',
-          'div[role="button"]:has-text("Log in")',
-          'div[role="button"]:has-text("Log In")'
-        ])
-
-        raise "Could not find login button" unless submit_button
-
-        submit_button.click
-        page.wait_for_timeout(8000)
-
-        page.screenshot(path: "tmp/instagram_after_login.png", fullPage: true)
-
-        dismiss_post_login_prompt(page)
+        login!(page)
 
         context.storage_state(path: storage_state_path)
 
@@ -76,6 +33,53 @@ class InstagramLoginSession
         browser.close
       end
     end
+  end
+
+  def login!(page)
+    page.goto(LOGIN_URL, waitUntil: "domcontentloaded", timeout: 30_000)
+    page.wait_for_timeout(5000)
+
+    dismiss_cookie_banner(page)
+
+    page.screenshot(path: "tmp/instagram_login_page.png", fullPage: true)
+
+    puts "TITLE: #{page.title}"
+    puts "URL: #{page.url}"
+
+    debug_inputs(page)
+
+    username_input = find_first_visible(page, [
+      'input[name="username"]',
+      'input[aria-label="Phone number, username, or email"]',
+      'input[aria-label="Phone number, username or email"]',
+      'input[autocomplete="username"]',
+      'input[type="text"]'
+    ])
+
+    password_input = find_first_visible(page, %w[input[name="password"] input[aria-label="Password"] input[autocomplete="current-password"] input[type="password"]])
+
+    raise "Could not find username input" unless username_input
+    raise "Could not find password input" unless password_input
+
+    username_input.fill(ENV.fetch("INSTAGRAM_USERNAME"))
+    password_input.fill(ENV.fetch("INSTAGRAM_PASSWORD"))
+
+    submit_button = find_first_visible(page, [
+      'button[type="submit"]',
+      'button:has-text("Log in")',
+      'button:has-text("Log In")',
+      'div[role="button"]:has-text("Log in")',
+      'div[role="button"]:has-text("Log In")'
+    ])
+
+    raise "Could not find login button" unless submit_button
+
+    submit_button.click
+    page.wait_for_timeout(8000)
+
+    page.screenshot(path: "tmp/instagram_after_login.png", fullPage: true)
+
+    dismiss_post_login_prompt(page)
   end
 
   private
